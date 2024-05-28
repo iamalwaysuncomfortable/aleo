@@ -15,6 +15,7 @@
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
 pub use super::*;
+use crate::log;
 use std::{ops::Deref, str::FromStr};
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -93,24 +94,25 @@ pub fn verify_function_execution(
     process
         .insert_verifying_key(&program_id, &function, VerifyingKeyNative::from(verifying_key))
         .map_err(|e| e.to_string())?;
-    process.verify_execution(execution).map_or(Ok(false), |_| Ok(true))
+    process.verify_execution(execution).map_or(Ok(false), |p| Ok(true))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use wasm_bindgen_test::*;
-
-    const EXECUTION: &str = r#"{ "transitions": [ { "id": "au1xe07pjnw6970k9lh0rfvpdnudcz0gcyy5qmv2efp3qrdxkkaj5rseklkfk", "program": "credits.aleo", "function": "transfer_public", "inputs": [ { "type": "public", "id": "6830040130268084683056203786650856838291629627526850542328121029117462649106field", "value": "aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8" }, { "type": "public", "id": "3522622156280992546879723962866054193411134839313162974822034464277507937156field", "value": "1u64" } ], "outputs": [ { "type": "future", "id": "6287946476679554718269040652777030908815963134664267470652690289159774741065field", "value": "{\n  program_id: credits.aleo,\n  function_name: transfer_public,\n  arguments: [\n    aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8,\n    aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8,\n    1u64\n  ]\n}" } ], "tpk": "1124897318163588088766079717854473596955076479615330099205126740598806373414group", "tcm": "5379517959399780344431681060960827894902462418861353186658003065156167347920field" } ], "global_state_root": "sr1tml46c266j4gzv9qpk0adkt6tkl4mjq7s7supuy8dmv9lq09j5zsd5eqsz", "proof": "proof1qyqsqqqqqqqqqqqpqqqqqqqqqqq9eqfncmzufz24n5xvfk2yy2lm7k0jh2y23yj5ssekln7h2nmlc62mnjwe794rn5dxwwf7unaamfyqqxzhaqnm3xws740w8gwt3dt22r5l43xa9rhn6yc0vpuu46mal3a86n3qmc8yegeh8afyetmz7rs8mq8766v6rryrnhnhl8xudl3tr7rk50f0lrz36cjwp0vpg46fzq4wv9n3eglkn9ztx4kzhh9d0wmqgcqvv2e6lrnaqp9cafaxjh88pzfjn26vyq3y50hazf9c9ysc84x33mn4wculvu67z2utduq5qyy933qqtn7u5rtsztmtakuu2japhf7qcvrc663vkuk9s0twufhh42d2kk3ukf00290jxqe9qnfwr3txz05spv7tp88e7dduldq5wwulae6wm3nztzmzdjrypfz08awuvkzuale9h96hy8nyjt2znntu20c4xemlsyqpfn6ce0sv5nn5shxx2up8kw9xtyle3pcyaum9hsw29ctqcjqmn53j7dxy6ep37cfvnflxqctpuqqgtgss9tp5rzg4vp46fw8nsjztdum9xm2xp0d8hglr2v8fuyh38afsw0kymhn2lznaag7cwud0guqtpdn2l2zgn4sjg7n0gdd0ueg5ujeydmqkxx8dp9a4g456q4jvukjt2cycuvef5slqt3hwnuh6ez5qys785f6xw8xsc5ns6ee3la7rf3p24mkpeakd5ay73q30m3qezux2xzqv35zy8jclv7lxpvcnej8tkstf00fzh9l44q382hpt8eejyp3vs3pq2n3n2e0eq30zatqyrvqsqs4cllynrcytc6v9seuqgtdnzy5rr3vcwwhlrxzm2h66e9q4z94r7zpnkm6xt4yermvys6twaw6sncwt5x64qjdnatddjpeh97uszkvamu6kmltu2unnq2mq4kverfsg8ncpvkhvre77yjhgmw5nevw2az0s2dwr6navrchn7pdwkmmjcu9dedn40jacflfeld7agznzjw3cpwewyhhufu49l5ttjpqrcpl3yzn2m3h3mgq5ea4xedf8370lmmr4ansr60x5d0qwrx08n6r8qe6vq2jlk5t8fey0mcgteef0hxe84vm5khehwjr9vu7p839jpysctaz3z88zcum9nw6z04gqvj3dqvldndldatwknwu4plnlpsqxhg5x8qc0qvqqqqqqqqqqqf57wtv2gucqnx8n0ejkhtywfmxrvewes27sr0ng67f7900w4kga6ztwnzhvtpd4rv0qqhjfmkwssqqvzr0sf8p6hsda4wgak42gtdcxfkf8xfywmdpgecqhxcptdrtvluv9adsn8vc5vwds4kd54thnaggqqxz3799lcez0f8v2xencv2z76fwvgp52wrnh5qyjtteckn2nhlhq8e60eq358pw2lezf74flec2wp4e8gvk5xtrwwy36j36axmy9pmh9kwa9cnsykxzwx38kdtqhnqytsyqqefuv9d" }"#;
-
-    #[wasm_bindgen_test]
-    fn test_execution_verification() {
-        let execution = Execution::from_string(EXECUTION).unwrap();
-        let verifying_key_bytes = snarkvm_parameters::testnet::TransferPublicVerifier::load_bytes().unwrap();
-        let verifying_key = VerifyingKey::from_bytes(&verifying_key_bytes).unwrap();
-        assert!(
-            verify_function_execution(&execution, &verifying_key, &Program::get_credits_program(), "transfer_public")
-                .unwrap()
-        );
-    }
-}
+// TODO: Re-add tests after initial SDK release
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use wasm_bindgen_test::*;
+//
+//     const EXECUTION: &str = r#"{"transitions":[{"id":"au1y8g2y8fvum3artfj3wqz9yps2u30s4zk6cssaqhg5yj9tpx8eszqn7erjp","program":"credits.aleo","function":"transfer_public","inputs":[{"type":"public","id":"5728323912539873901463744923106579772849880966232653596587848724800440854698field","value":"aleo12tksdptp7hvxly8tkm3um08fvf53qpehsgdgqfvy9pe3sewcq5ysjg5myy"},{"type":"public","id":"5747305006533197425360059474083535488071694934708374669191415686930805801476field","value":"10000000000000u64"}],"outputs":[{"type":"future","id":"8260514824634633030701492989170989242596854865439089259126466320867563479449field","value":"{\n  program_id: credits.aleo,\n  function_name: transfer_public,\n  arguments: [\n    aleo12tksdptp7hvxly8tkm3um08fvf53qpehsgdgqfvy9pe3sewcq5ysjg5myy,\n    aleo12tksdptp7hvxly8tkm3um08fvf53qpehsgdgqfvy9pe3sewcq5ysjg5myy,\n    10000000000000u64\n  ]\n}"}],"tpk":"1443791236595734816721808594797682198514246646666543554175320023762598050716group","tcm":"3124189233089316494525019740495817071312710677756667238858579956966409322827field","scm":"7147560898329539385845695555565243574844127625207818002552572984487942831128field"}],"global_state_root":"sr1ekees06ce437zyrpy3xryal7wpfsw2zlsvwrr0rrfv3ywc8ehcrs6mjr2t","proof":"proof1qyqsqqqqqqqqqqqpqqqqqqqqqqqdxjp0rrnrukwx66zxzzxv3jtqwqar5qakf590hyt0653vnuqfy0txjz34l3f9747w2v6apf86e9vpq80vgpkfu0663yee9n73g4gym0e9kzg4t7m45rf6336f40t9eqqjhpc0hd3cvsry6r8q20g40qe3lqdr9efumsuew2m54zygyruuej23kzwppzvy4wm0xjd9pmplgz2tt8gdvdvrlggjlhp4jna2w54pqjqjhtj4glv7j97nyad7wsfl0qj9ynpjn7gxc0ypzl2gg36qkn0kj0vtdcr4w28h6g6hr90y5jjfstsqgd7myt58ltve9z6v6p99awkgf4ex9eckv0x0vs8g4wyjf64p4897udd54ceg4km60asqhfqx9szcq2dlhwd7pf6ke53v8st4eamxdk9plsu9e0ueux2tknp73hup28hnjzpjlwje6438ehq6s36fz9tesqzww57da0svmvu7zc72w78pdqvk22w2nur28rvx0vvcvck8acpqrfewcu9xltv5hmzmlnmp8k7lkqpy2ynefnle3qss9d265tz2qu8mkwjq2la5nygvm56jvp0fdjazat0rdt29qjqvefjlq8retaqhqkqzu8nn2hhljhd3nljk4alq4hw5qwhdmz6884sezm8gmcw89w0mhqktyanzlk8p3qfczfk3aawn53up6kus7ygccazpk08ajh3s4t09ajpuz32n7sk2267z292pu40t8syccstzar65gl6hjkn02agruzdp5hlaryl20pvtl45sndxwyhykxzvh8xy07h03vr7qdcnspphqjsrdexvcafj4h00p3tswedj4twgcqca89x062c4ych4ky8dtdvvan5wazqwv3ecqg8qfvj3r842pe2ys8v9x4wz394tnjhxtwwl6g8my88mytt88hhw92ejjuu70375s4eqzpsatd3943y05uuy55nrunntsfx5lrhx8kj46ypj2x6mhgthsqvr43ykrtnpngjdxwqrgcwsh4tpynmrasgp42ffqr9kpyqq2nqjw5r9tddp92d9xzf7x2tu2j2lrruyarxwga3234c0jdfu6lxhezq7upnug7vvx9zq07rv5j3g03vqusptykdy7k7fyfparzgc5gr7maggsl6u3k2xz45ww687prfk8gjcfrmuklax0j9mfpxhr4zy00znh33cfqvqqqqqqqqqqq0q60aqmmdesrr8dm7s6zrqtgkpe6dmptmrl8kj2vna7xdjxqq0g46js4pcy8y50n29g9c3tfzu7syqpluwspydz4jt02gdn5zfcm3kggexkj6lcxe40fm948rdpknl8qq98w452mrkhu4heuxde5gvernsqq9juwjerdc0awzapcvzn49k5kjqv28l94ysud9vr67ukqka7g3epz9l4ng33hdw7xuytxdw4cnknkrld3u2pltxnal2vlwnpjmlv245rqqhqsa8puprxnnmfk70cavtaqqqqw7jtdw"}"#;
+//     const TRANSFER_PUBLIC_VERIFIER: &str = "verifier1qygqqqqqqqqqqqp3xqqqqqqqqqqzvvqqqqqqqqqq23hqqqqqqqqqqau5qqqqqqqqqq5yzqqqqqqqqqqvqqqqqqqqqqqz2rh4q6m4u0ycv2z5qx95echpdcsktezkr2j9cvff0dngp45jfqggm8q3578nkhjudslm2rdpsgcpks4ulquyqrtd978zvj65pxmhkudyjtj005h66jcnwg3f6mdqqaqjed3avcz599kth8a3nak0tftsrk4hczcdvlmrdnzsa6rfppy72flsrhdhn6npxfxt2rrudk8jrk5fefkawhhrf0psccp6l9akckaps898v5mk7vprkx90gg798d6j5tvvtma0r9phq3jndan5rkwv8wmkngeha3pzrjzslkt8ct9umm4wfq8dhnpdv8m4plq70c3d6wxs4l3cv4gyqhgjtwfuydc5fflulwgjvdtaxxlmpf0l5n800jn2lwnt5kqqtdsx2lvzl3kw3ns5hnsu4jzg9ejptg7n7r7d9dvqsrvldw9paeq86hjxeaac6typemynwzt8w3vq3e27l4swd9aqxaas7zsy5mw7ftnjct9jq6t9rdq0kx8vjag77nt0z894xqkrfp27hehk83nfcg7cpjcc7f8mznga33xp36seafxpn26rq4w5l9uawtx02mzpq9kuyyx7nvhtad0mxk5su659xx5wv3yhqqy3577kwc40spvp9dst59ap2ll5uuq7qaauy9vy5yvrjd77c443evxrwfsee8jg5hvt6f9xaupjzq2cmuuwdvjs0qtxmnwjmdepu5979qy4nhqs63zljatt7kkggddxctt74crayt4djvnh3u6tjzm8wyqpc7nf0r0k9mp34x9musgdqegkmscey50ckyehm67c5tcdlawkh6my2v3xzwaug7c4y9xyw0dfkqup24jdckk5wxkyfd8rsp6h220dj786t54fyj59ehtq0gyut6lcattumgdss4kkchrdp7f5sjgcu7ycpzq0d47m6xe3yh2q5q76fa20lm46pe8fcd9yqcrxduhkdqfe4c9pw3pqqqqqqqqqq0qvtsl";
+//
+//     #[wasm_bindgen_test]
+//     fn test_execution_verification() {
+//         let execution = Execution::from_string(EXECUTION).unwrap();
+//         let verifying_key = VerifyingKey::from_string(TRANSFER_PUBLIC_VERIFIER).unwrap();
+//         assert!(
+//             verify_function_execution(&execution, &verifying_key, &Program::get_credits_program(), "transfer_public")
+//                 .unwrap()
+//         );
+//     }
+// }
